@@ -272,7 +272,43 @@ if(CGAL_ENABLED)
     set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
     # We do not use CGAL data. This prevents an unnecessary warning by CMake.
     set(CGAL_DATA_DIR "unused")
-    find_package(CGAL ${COLMAP_FIND_TYPE})
+    if(COLMAP_USE_BUNDLED_CGAL)
+        # Add CGAL only after COLMAP's pinned Boost has been configured above.
+        # CGAL's own CMake setup then reuses those targets instead of defining
+        # a second Boost::headers target.
+        set(CGAL_ENABLE_TESTING OFF CACHE BOOL
+            "Disable CGAL tests when it is built as a COLMAP subproject" FORCE)
+        set(WITH_examples OFF CACHE BOOL
+            "Disable CGAL examples in the COLMAP build" FORCE)
+        set(WITH_demos OFF CACHE BOOL
+            "Disable CGAL demos in the COLMAP build" FORCE)
+        set(WITH_tests OFF CACHE BOOL
+            "Disable CGAL tests in the COLMAP build" FORCE)
+        # CGAL's release CMakeLists normally calls project(CGAL) only when it
+        # is the top-level project.  Wrap the untouched Git submodule by
+        # supplying the variables it expects, instead of patching its source.
+        set(_colmap_parent_project_name "${PROJECT_NAME}")
+        set(PROJECT_NAME CGAL)
+        set(CGAL_SOURCE_DIR "${COLMAP_BUNDLED_CGAL_SOURCE_DIR}")
+        set(CGAL_BINARY_DIR "${CMAKE_BINARY_DIR}/third_party/CGAL")
+        add_subdirectory(
+            "${COLMAP_BUNDLED_CGAL_SOURCE_DIR}"
+            "${CGAL_BINARY_DIR}"
+            EXCLUDE_FROM_ALL)
+        set(PROJECT_NAME "${_colmap_parent_project_name}")
+        unset(_colmap_parent_project_name)
+        unset(CGAL_SOURCE_DIR)
+        unset(CGAL_BINARY_DIR)
+        set(CGAL_DIR "${CMAKE_BINARY_DIR}/third_party/CGAL" CACHE PATH
+            "COLMAP's CGAL submodule package directory" FORCE)
+        find_package(CGAL CONFIG REQUIRED
+                     PATHS "${CMAKE_BINARY_DIR}/third_party/CGAL"
+                     NO_DEFAULT_PATH)
+        set(COLMAP_USING_BUNDLED_CGAL TRUE)
+        message(STATUS "Using CGAL submodule ${CGAL_VERSION}")
+    else()
+        find_package(CGAL ${COLMAP_FIND_TYPE})
+    endif()
 endif()
 
 if(CGAL_FOUND)
@@ -282,12 +318,19 @@ if(CGAL_FOUND)
     message(STATUS "  Includes : ${CGAL_INCLUDE_DIRS}")
     message(STATUS "  Libraries : ${CGAL_LIBRARY}")
     if(NOT TARGET CGAL)
+        if(TARGET CGAL::CGAL)
+            # Keep COLMAP's existing unnamespaced target name while routing it
+            # to the imported target provided by CGAL 6.x.
+            add_library(CGAL INTERFACE IMPORTED)
+            target_link_libraries(CGAL INTERFACE CGAL::CGAL)
+        else()
         # Older CGAL versions don't come with an imported interface target.
-        add_library(CGAL INTERFACE IMPORTED)
-        target_include_directories(
-            CGAL INTERFACE ${CGAL_INCLUDE_DIRS} ${GMP_INCLUDE_DIR})
-        target_link_libraries(
-            CGAL INTERFACE ${CGAL_LIBRARY} ${GMP_LIBRARIES})
+            add_library(CGAL INTERFACE IMPORTED)
+            target_include_directories(
+                CGAL INTERFACE ${CGAL_INCLUDE_DIRS} ${GMP_INCLUDE_DIR})
+            target_link_libraries(
+                CGAL INTERFACE ${CGAL_LIBRARY} ${GMP_LIBRARIES})
+        endif()
     endif()
     list(APPEND COLMAP_LINK_DIRS ${CGAL_LIBRARIES_DIR})
 else()

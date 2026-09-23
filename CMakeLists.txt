@@ -63,6 +63,8 @@ option(PROFILING_ENABLED "Whether to enable google-perftools linker flags" OFF)
 option(WERROR_ENABLED "Whether to treat compiler warnings as errors" OFF)
 option(CCACHE_ENABLED "Whether to enable compiler caching, if available" ON)
 option(CGAL_ENABLED "Whether to enable the CGAL library" ON)
+option(COLMAP_USE_BUNDLED_CGAL
+       "Use CGAL from the third_party/CGAL Git submodule" ON)
 option(LSD_ENABLED "Whether to enable the LSD library" ON)
 option(DOWNLOAD_ENABLED "Whether to enable (automatic) download of resources (requires Curl/OpenSSL)" ON)
 option(UNINSTALL_ENABLED "Whether to create a target to 'uninstall' colmap" ON)
@@ -156,6 +158,33 @@ endif()
 ################################################################################
 
 set(COLMAP_FIND_QUIETLY FALSE)
+
+# Keep the system CGAL installation untouched.  The dependency setup adds the
+# CGAL submodule after COLMAP's pinned Boost has been configured, so CGAL reuses
+# that Boost target instead of defining a second Boost::headers target.
+if(CGAL_ENABLED AND COLMAP_USE_BUNDLED_CGAL)
+    set(COLMAP_BUNDLED_CGAL_SOURCE_DIR
+        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/CGAL")
+    if(NOT EXISTS "${COLMAP_BUNDLED_CGAL_SOURCE_DIR}/CMakeLists.txt")
+        message(FATAL_ERROR
+                "COLMAP_USE_BUNDLED_CGAL is ON, but the CGAL submodule source "
+                "was not found at ${COLMAP_BUNDLED_CGAL_SOURCE_DIR}")
+    endif()
+endif()
+
+# Create COLMAP's uninstall target before adding the CGAL submodule.  CGAL's
+# top-level project also declares a target named ``uninstall`` when it is
+# embedded, so creating COLMAP's target first lets CGAL skip its own target
+# without modifying the submodule source.
+if(UNINSTALL_ENABLED)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CMakeUninstall.cmake.in"
+                   "${CMAKE_CURRENT_BINARY_DIR}/CMakeUninstall.cmake"
+                   IMMEDIATE @ONLY)
+    add_custom_target(uninstall COMMAND ${CMAKE_COMMAND}
+                      -P ${CMAKE_CURRENT_BINARY_DIR}/CMakeUninstall.cmake)
+    set_target_properties(uninstall PROPERTIES FOLDER ${CMAKE_TARGETS_ROOT_FOLDER})
+endif()
+
 include(cmake/FindDependencies.cmake)
 
 ################################################################################
@@ -415,15 +444,6 @@ if(UNIX AND NOT APPLE)
     install(FILES "src/colmap/ui/media/colmap-logo.svg"
             DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps"
             RENAME "colmap.svg")
-endif()
-
-# Configure the uninstallation script.
-if(UNINSTALL_ENABLED)
-    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CMakeUninstall.cmake.in"
-                   "${CMAKE_CURRENT_BINARY_DIR}/CMakeUninstall.cmake"
-                   IMMEDIATE @ONLY)
-    add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/CMakeUninstall.cmake)
-    set_target_properties(uninstall PROPERTIES FOLDER ${CMAKE_TARGETS_ROOT_FOLDER})
 endif()
 
 set(COLMAP_EXPORT_LIBS
