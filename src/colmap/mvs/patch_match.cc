@@ -219,6 +219,7 @@ void PatchMatchController::ReadWorkspace() {
   }
 
   workspace_options.max_image_size = options_.max_image_size;
+  workspace_options.initial_image_scale = options_.initial_image_scale;
   workspace_options.image_as_rgb = false;
   workspace_options.cache_size = options_.cache_size;
   workspace_options.workspace_path = workspace_path_;

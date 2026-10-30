@@ -43,6 +43,7 @@ class NormalMap : public Mat<float> {
   explicit NormalMap(const Mat<float>& mat);
 
   void Rescale(float factor);
+  void Rescale(size_t new_width, size_t new_height);
   void Downsize(size_t max_width, size_t max_height);
 
   Bitmap ToBitmap() const;

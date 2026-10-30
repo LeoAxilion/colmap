@@ -39,8 +39,15 @@ namespace colmap {
 namespace mvs {
 
 Workspace::Workspace(const Options& options) : options_(options) {
+  THROW_CHECK_GT(options_.initial_image_scale, 0);
   StringToLower(&options_.input_type);
   model_.Read(options_.workspace_path, options_.workspace_format);
+  if (options_.initial_image_scale > 1) {
+    const float scale = 1.0f / options_.initial_image_scale;
+    for (auto& image : model_.images) {
+      image.Rescale(scale);
+    }
+  }
   if (options_.max_image_size > 0) {
     for (auto& image : model_.images) {
       image.Downsize(options_.max_image_size, options_.max_image_size);
@@ -81,16 +88,18 @@ void Workspace::Load(const std::vector<std::string>& image_names) {
     // Read and rescale depth map
     auto depth_map = std::make_unique<DepthMap>();
     depth_map->Read(GetDepthMapPath(image_idx));
-    if (depth_map->GetWidth() != width || depth_map->GetHeight() != height) {
-      depth_map->Downsize(width, height);
+    if (options_.rescale_maps_to_model_size &&
+        (depth_map->GetWidth() != width || depth_map->GetHeight() != height)) {
+      depth_map->Rescale(width, height);
     }
     depth_maps_[image_idx] = std::move(depth_map);
 
     // Read and rescale normal map
     auto normal_map = std::make_unique<NormalMap>();
     normal_map->Read(GetNormalMapPath(image_idx));
-    if (normal_map->GetWidth() != width || normal_map->GetHeight() != height) {
-      normal_map->Downsize(width, height);
+    if (options_.rescale_maps_to_model_size &&
+        (normal_map->GetWidth() != width || normal_map->GetHeight() != height)) {
+      normal_map->Rescale(width, height);
     }
     normal_maps_[image_idx] = std::move(normal_map);
   };
@@ -185,7 +194,10 @@ const Bitmap& CachedWorkspace::GetBitmap(const int image_idx) {
   if (!cached_image->bitmap) {
     cached_image->bitmap = std::make_unique<Bitmap>();
     cached_image->bitmap->Read(GetBitmapPath(image_idx), options_.image_as_rgb);
-    if (options_.max_image_size > 0) {
+    if (cached_image->bitmap->Width() !=
+            static_cast<int>(model_.images.at(image_idx).GetWidth()) ||
+        cached_image->bitmap->Height() !=
+            static_cast<int>(model_.images.at(image_idx).GetHeight())) {
       cached_image->bitmap->Rescale(model_.images.at(image_idx).GetWidth(),
                                     model_.images.at(image_idx).GetHeight());
     }
@@ -209,10 +221,13 @@ const DepthMap& CachedWorkspace::GetDepthMap(const int image_idx) {
   if (!cached_image->depth_map) {
     cached_image->depth_map = std::make_unique<DepthMap>();
     cached_image->depth_map->Read(GetDepthMapPath(image_idx));
-    if (options_.max_image_size > 0) {
-      cached_image->depth_map->Downsize(
-          model_.images.at(image_idx).GetWidth(),
-          model_.images.at(image_idx).GetHeight());
+    if (options_.rescale_maps_to_model_size &&
+        (cached_image->depth_map->GetWidth() !=
+            model_.images.at(image_idx).GetWidth() ||
+        cached_image->depth_map->GetHeight() !=
+            model_.images.at(image_idx).GetHeight())) {
+      cached_image->depth_map->Rescale(model_.images.at(image_idx).GetWidth(),
+                                       model_.images.at(image_idx).GetHeight());
     }
     cached_image->num_bytes += cached_image->depth_map->GetNumBytes();
     std::lock_guard<std::mutex> cache_lock(cache_mutex_);
@@ -234,8 +249,12 @@ const NormalMap& CachedWorkspace::GetNormalMap(const int image_idx) {
   if (!cached_image->normal_map) {
     cached_image->normal_map = std::make_unique<NormalMap>();
     cached_image->normal_map->Read(GetNormalMapPath(image_idx));
-    if (options_.max_image_size > 0) {
-      cached_image->normal_map->Downsize(
+    if (options_.rescale_maps_to_model_size &&
+        (cached_image->normal_map->GetWidth() !=
+            model_.images.at(image_idx).GetWidth() ||
+        cached_image->normal_map->GetHeight() !=
+            model_.images.at(image_idx).GetHeight())) {
+      cached_image->normal_map->Rescale(
           model_.images.at(image_idx).GetWidth(),
           model_.images.at(image_idx).GetHeight());
     }

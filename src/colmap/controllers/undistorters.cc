@@ -105,6 +105,7 @@ void WriteCOLMAPCommands(const bool geometric,
       *file << indent << "  --pmvs_option_name " << pmvs_option_name << " \\\n";
     }
     *file << indent << "  --PatchMatchStereo.max_image_size 2000 \\\n";
+    *file << indent << "  --PatchMatchStereo.initial_image_scale 4 \\\n";
     *file << indent << "  --PatchMatchStereo.geom_consistency true\n";
   } else {
     *file << indent << "$COLMAP_EXE_PATH/colmap patch_match_stereo \\\n";
@@ -114,6 +115,7 @@ void WriteCOLMAPCommands(const bool geometric,
       *file << indent << "  --pmvs_option_name " << pmvs_option_name << " \\\n";
     }
     *file << indent << "  --PatchMatchStereo.max_image_size 2000 \\\n";
+    *file << indent << "  --PatchMatchStereo.initial_image_scale 4 \\\n";
     *file << indent << "  --PatchMatchStereo.geom_consistency false\n";
   }
 

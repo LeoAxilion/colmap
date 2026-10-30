@@ -84,6 +84,11 @@ struct PatchMatchOptions {
   // Maximum image size in either dimension.
   int max_image_size = -1;
 
+  // Isotropic scale factor applied to each input image before PatchMatch.
+  // A value of 4 processes each image at approximately one quarter of its
+  // original width and height. The image files on disk remain unchanged.
+  int initial_image_scale = 4;
+
   // Half window size to compute NCC photo-consistency cost.
   int window_radius = 5;
 

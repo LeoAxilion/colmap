@@ -52,18 +52,36 @@ void NormalMap::Rescale(const float factor) {
 
   const size_t new_width = std::round(width_ * factor);
   const size_t new_height = std::round(height_ * factor);
+  Rescale(new_width, new_height);
+}
+
+void NormalMap::Rescale(const size_t new_width, const size_t new_height) {
+  if (width_ == new_width && height_ == new_height) {
+    return;
+  }
+  THROW_CHECK_GT(new_width, 0);
+  THROW_CHECK_GT(new_height, 0);
   std::vector<float> new_data(new_width * new_height * 3);
 
   // Resample the normal map.
   for (size_t d = 0; d < 3; ++d) {
     const size_t offset = d * width_ * height_;
     const size_t new_offset = d * new_width * new_height;
-    DownsampleImage(data_.data() + offset,
-                    height_,
-                    width_,
-                    new_height,
-                    new_width,
-                    new_data.data() + new_offset);
+    if (new_width <= width_ && new_height <= height_) {
+      DownsampleImage(data_.data() + offset,
+                      height_,
+                      width_,
+                      new_height,
+                      new_width,
+                      new_data.data() + new_offset);
+    } else {
+      ResampleImageBilinear(data_.data() + offset,
+                            height_,
+                            width_,
+                            new_height,
+                            new_width,
+                            new_data.data() + new_offset);
+    }
   }
 
   data_ = new_data;

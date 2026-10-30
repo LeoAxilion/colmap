@@ -49,6 +49,7 @@ class DepthMap : public Mat<float> {
   inline float Get(size_t row, size_t col) const;
 
   void Rescale(float factor);
+  void Rescale(size_t new_width, size_t new_height);
   void Downsize(size_t max_width, size_t max_height);
 
   Bitmap ToBitmap(float min_percentile, float max_percentile) const;

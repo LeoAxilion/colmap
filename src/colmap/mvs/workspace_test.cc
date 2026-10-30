@@ -129,6 +129,58 @@ TEST_P(ParameterizedWorkspaceTests, MaxImageSize) {
   EXPECT_EQ(workspace->GetNormalMap(0).GetHeight(), 2);
 }
 
+TEST_P(ParameterizedWorkspaceTests, InitialImageScale) {
+  Workspace::Options options = GetOptions();
+  options.initial_image_scale = 2;
+  auto workspace = GetParam()(options);
+  workspace->Load({image_name_});
+  ASSERT_EQ(workspace->GetModel().images.size(), 1);
+  EXPECT_EQ(workspace->GetModel().images[0].GetWidth(), 5);
+  EXPECT_EQ(workspace->GetModel().images[0].GetHeight(), 3);
+  EXPECT_EQ(workspace->GetBitmap(0).Width(), 5);
+  EXPECT_EQ(workspace->GetBitmap(0).Height(), 3);
+  EXPECT_EQ(workspace->GetDepthMap(0).GetWidth(), 5);
+  EXPECT_EQ(workspace->GetDepthMap(0).GetHeight(), 3);
+  EXPECT_EQ(workspace->GetNormalMap(0).GetWidth(), 5);
+  EXPECT_EQ(workspace->GetNormalMap(0).GetHeight(), 3);
+}
+
+TEST_P(ParameterizedWorkspaceTests, ScaleAndMaxImageSize) {
+  Workspace::Options options = GetOptions();
+  options.initial_image_scale = 2;
+  options.max_image_size = 2;
+  auto workspace = GetParam()(options);
+  workspace->Load({image_name_});
+  ASSERT_EQ(workspace->GetModel().images.size(), 1);
+  EXPECT_EQ(workspace->GetModel().images[0].GetWidth(), 2);
+  EXPECT_EQ(workspace->GetModel().images[0].GetHeight(), 1);
+  EXPECT_EQ(workspace->GetBitmap(0).Width(), 2);
+  EXPECT_EQ(workspace->GetBitmap(0).Height(), 1);
+  EXPECT_EQ(workspace->GetDepthMap(0).GetWidth(), 2);
+  EXPECT_EQ(workspace->GetDepthMap(0).GetHeight(), 1);
+  EXPECT_EQ(workspace->GetNormalMap(0).GetWidth(), 2);
+  EXPECT_EQ(workspace->GetNormalMap(0).GetHeight(), 1);
+}
+
+TEST_P(ParameterizedWorkspaceTests, RescaleSmallerExistingMaps) {
+  Mat<float> depth_map(5, 3, 1);
+  depth_map.Fill(1.0f);
+  depth_map.Write(temp_dir_ / "stereo" / "depth_maps" /
+                  (image_name_ + ".geometric.bin"));
+
+  Mat<float> normal_map(5, 3, 3);
+  normal_map.Fill(1.0f);
+  normal_map.Write(temp_dir_ / "stereo" / "normal_maps" /
+                   (image_name_ + ".geometric.bin"));
+
+  auto workspace = GetParam()(GetOptions());
+  workspace->Load({image_name_});
+  EXPECT_EQ(workspace->GetDepthMap(0).GetWidth(), 10);
+  EXPECT_EQ(workspace->GetDepthMap(0).GetHeight(), 5);
+  EXPECT_EQ(workspace->GetNormalMap(0).GetWidth(), 10);
+  EXPECT_EQ(workspace->GetNormalMap(0).GetHeight(), 5);
+}
+
 TEST_P(ParameterizedWorkspaceTests, Load) {
   auto workspace = GetParam()(GetOptions());
   workspace->Load({image_name_});

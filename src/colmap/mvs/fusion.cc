@@ -156,6 +156,7 @@ void StereoFusion::Run() {
   workspace_options.max_image_size = options_.max_image_size;
   workspace_options.image_as_rgb = true;
   workspace_options.cache_size = options_.cache_size;
+  workspace_options.rescale_maps_to_model_size = false;
   workspace_options.workspace_path = workspace_path_;
   workspace_options.workspace_format = workspace_format_;
   workspace_options.input_type = input_type_;

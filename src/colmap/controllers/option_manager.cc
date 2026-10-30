@@ -989,6 +989,8 @@ void OptionManager::AddPatchMatchStereoOptions() {
 
   AddDefaultOption("PatchMatchStereo.max_image_size",
                    &patch_match_stereo->max_image_size);
+  AddDefaultOption("PatchMatchStereo.initial_image_scale",
+                   &patch_match_stereo->initial_image_scale);
   AddDefaultOption("PatchMatchStereo.gpu_index",
                    &patch_match_stereo->gpu_index);
   AddDefaultOption("PatchMatchStereo.depth_min",

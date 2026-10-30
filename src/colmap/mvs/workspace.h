@@ -55,6 +55,14 @@ class Workspace {
     // Maximum image size in either dimension.
     int max_image_size = -1;
 
+    // Isotropic scale factor applied to workspace images before processing.
+    int initial_image_scale = 1;
+
+    // Whether depth and normal maps should be rescaled to the image model size.
+    // Stereo fusion can keep their native resolution and map pixel coordinates
+    // back to the image instead.
+    bool rescale_maps_to_model_size = true;
+
     // Whether to read image as RGB or gray scale.
     bool image_as_rgb = true;
 

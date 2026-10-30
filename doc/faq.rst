@@ -359,6 +359,15 @@ from the known camera poses, you can compute a dense model as follows::
         --workspace_path path/to/dense/workspace \
         --output_path path/to/dense/workspace/fused.ply
 
+PatchMatch input images can also be uniformly scaled in memory without
+changing the undistorted image files on disk. The default
+``--PatchMatchStereo.initial_image_scale 4`` uses one quarter of the input
+width and height; set it to ``1`` to process at the workspace image
+resolution. This option also scales the camera intrinsics and any previously
+computed depth and normal maps loaded for geometric consistency. It can be
+combined with ``--PatchMatchStereo.max_image_size``, which remains an
+additional absolute size cap.
+
 Alternatively, you can also produce a dense model without a sparse model as::
 
     colmap image_undistorter \
