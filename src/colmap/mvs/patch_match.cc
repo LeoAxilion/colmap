@@ -80,6 +80,20 @@ void PatchMatch::Check() const {
     THROW_CHECK_EQ(problem_.normal_maps->size(), problem_.images->size());
   }
 
+  THROW_CHECK_EQ(problem_.initial_depth_map == nullptr,
+                 problem_.initial_normal_map == nullptr);
+  if (problem_.initial_depth_map != nullptr) {
+    const Image& ref_image = problem_.images->at(problem_.ref_image_idx);
+    THROW_CHECK_EQ(problem_.initial_depth_map->GetWidth(),
+                   ref_image.GetWidth());
+    THROW_CHECK_EQ(problem_.initial_depth_map->GetHeight(),
+                   ref_image.GetHeight());
+    THROW_CHECK_EQ(problem_.initial_normal_map->GetWidth(),
+                   ref_image.GetWidth());
+    THROW_CHECK_EQ(problem_.initial_normal_map->GetHeight(),
+                   ref_image.GetHeight());
+  }
+
   THROW_CHECK_GT(problem_.src_image_idxs.size(), 0);
 
   // Check that there are no duplicate images and that the reference image
@@ -517,22 +531,88 @@ void PatchMatchController::ProcessProblem(const PatchMatchOptions& options,
     problem.src_image_idxs = src_image_idxs;
   }
 
-  problem.Print();
-  patch_match_options.Print();
+  FlatHashSet<int> used_image_idxs(problem.src_image_idxs.begin(),
+                                   problem.src_image_idxs.end());
+  used_image_idxs.insert(problem.ref_image_idx);
 
-  PatchMatch patch_match(patch_match_options, problem);
-  patch_match.Run();
+  DepthMap previous_depth_map;
+  NormalMap previous_normal_map;
+  for (int level = 0; level < options.num_pyramid_levels; ++level) {
+    const int downsample_power = options.num_pyramid_levels - level - 1;
+    const float scale = 1.0f / static_cast<float>(1 << downsample_power);
+    std::vector<Image> level_images = images;
+    for (const int image_idx : used_image_idxs) {
+      if (scale < 1.0f) {
+        level_images.at(image_idx).Rescale(scale);
+      }
+    }
+
+    std::vector<DepthMap> level_depth_maps = depth_maps;
+    std::vector<NormalMap> level_normal_maps = normal_maps;
+    if (options.geom_consistency) {
+      for (const int image_idx : used_image_idxs) {
+        level_depth_maps.at(image_idx).Rescale(
+            level_images.at(image_idx).GetWidth(),
+            level_images.at(image_idx).GetHeight());
+        level_normal_maps.at(image_idx).Rescale(
+            level_images.at(image_idx).GetWidth(),
+            level_images.at(image_idx).GetHeight());
+      }
+    }
+
+    PatchMatch::Problem level_problem = problem;
+    level_problem.images = &level_images;
+    level_problem.depth_maps = &level_depth_maps;
+    level_problem.normal_maps = &level_normal_maps;
+
+    DepthMap initial_depth_map;
+    NormalMap initial_normal_map;
+    if (level > 0) {
+      initial_depth_map = previous_depth_map;
+      initial_normal_map = previous_normal_map;
+      initial_depth_map.Rescale(
+          level_images.at(problem.ref_image_idx).GetWidth(),
+          level_images.at(problem.ref_image_idx).GetHeight());
+      initial_normal_map.Rescale(
+          level_images.at(problem.ref_image_idx).GetWidth(),
+          level_images.at(problem.ref_image_idx).GetHeight());
+      level_problem.initial_depth_map = &initial_depth_map;
+      level_problem.initial_normal_map = &initial_normal_map;
+    } else {
+      level_problem.initial_depth_map = nullptr;
+      level_problem.initial_normal_map = nullptr;
+    }
+
+    auto level_options = patch_match_options;
+    level_options.filter =
+        patch_match_options.filter && level == options.num_pyramid_levels - 1;
+    LOG_HEADING1(
+        StringPrintf("Pyramid level %d / %d for %s (%zux%zu)",
+                     level + 1,
+                     options.num_pyramid_levels,
+                     image_name.c_str(),
+                     level_images.at(problem.ref_image_idx).GetWidth(),
+                     level_images.at(problem.ref_image_idx).GetHeight()));
+    level_problem.Print();
+    level_options.Print();
+
+    PatchMatch patch_match(level_options, level_problem);
+    patch_match.Run();
+    previous_depth_map = patch_match.GetDepthMap();
+    previous_normal_map = patch_match.GetNormalMap();
+    if (options.write_consistency_graph &&
+        level == options.num_pyramid_levels - 1) {
+      patch_match.GetConsistencyGraph().Write(consistency_graph_path);
+    }
+  }
 
   LOG(INFO) << std::endl
             << StringPrintf("Writing %s output for %s",
                             output_type.c_str(),
                             image_name.c_str());
 
-  patch_match.GetDepthMap().Write(depth_map_path);
-  patch_match.GetNormalMap().Write(normal_map_path);
-  if (options.write_consistency_graph) {
-    patch_match.GetConsistencyGraph().Write(consistency_graph_path);
-  }
+  previous_depth_map.Write(depth_map_path);
+  previous_normal_map.Write(normal_map_path);
 }
 
 }  // namespace mvs

@@ -1007,6 +1007,8 @@ void OptionManager::AddPatchMatchStereoOptions() {
                    &patch_match_stereo->sigma_color);
   AddDefaultOption("PatchMatchStereo.num_samples",
                    &patch_match_stereo->num_samples);
+  AddDefaultOption("PatchMatchStereo.num_pyramid_levels",
+                   &patch_match_stereo->num_pyramid_levels);
   AddDefaultOption("PatchMatchStereo.ncc_sigma",
                    &patch_match_stereo->ncc_sigma);
   AddDefaultOption("PatchMatchStereo.min_triangulation_angle",

@@ -102,9 +102,14 @@ struct PatchMatchOptions {
   // Number of random samples to draw in Monte Carlo sampling.
   int num_samples = 15;
 
+  // Number of coarse-to-fine image pyramid levels. The finest level is the
+  // configured workspace resolution (after initial_image_scale and
+  // max_image_size); each preceding level is downsampled by a factor of two.
+  int num_pyramid_levels = 3;
+
   // Number of coordinate descent iterations. Each iteration consists
   // of four sweeps from left to right, top to bottom, and vice versa.
-  int num_iterations = 5;
+  int num_iterations = 4;
 
   // Minimum number of source images have to be consistent
   // for pixel not to be filtered.

@@ -54,6 +54,7 @@ void PatchMatchOptions::Print() const {
   PrintOption(sigma_spatial);
   PrintOption(sigma_color);
   PrintOption(num_samples);
+  PrintOption(num_pyramid_levels);
   PrintOption(ncc_sigma);
   PrintOption(min_triangulation_angle);
   PrintOption(incident_angle_sigma);
@@ -83,6 +84,8 @@ bool PatchMatchOptions::Check() const {
   CHECK_OPTION_GT(window_step, 0);
   CHECK_OPTION_LE(window_step, 2);
   CHECK_OPTION_GT(num_samples, 0);
+  CHECK_OPTION_GT(num_pyramid_levels, 0);
+  CHECK_OPTION_LE(num_pyramid_levels, 16);
   CHECK_OPTION_GT(ncc_sigma, 0.0f);
   CHECK_OPTION_GE(min_triangulation_angle, 0.0f);
   CHECK_OPTION_LT(min_triangulation_angle, 180.0f);

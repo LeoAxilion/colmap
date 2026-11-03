@@ -70,6 +70,10 @@ class PatchMatch {
     // Input normal maps for the geometric consistency term.
     std::vector<NormalMap>* normal_maps = nullptr;
 
+    // Optional initialization maps from the previous pyramid level.
+    const DepthMap* initial_depth_map = nullptr;
+    const NormalMap* initial_normal_map = nullptr;
+
     // Print the configuration to stdout.
     void Print() const;
   };

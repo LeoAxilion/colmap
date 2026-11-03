@@ -1822,7 +1822,11 @@ void PatchMatchCuda::InitWorkspaceMemory() {
   rand_state_map_ = std::make_unique<GpuMatPRNG>(ref_width_, ref_height_);
 
   depth_map_ = std::make_unique<GpuMat<float>>(ref_width_, ref_height_);
-  if (options_.geom_consistency) {
+  if (problem_.initial_depth_map != nullptr) {
+    depth_map_->CopyToDevice(
+        problem_.initial_depth_map->GetPtr(),
+        problem_.initial_depth_map->GetWidth() * sizeof(float));
+  } else if (options_.geom_consistency) {
     const DepthMap& init_depth_map =
         problem_.depth_maps->at(problem_.ref_image_idx);
     depth_map_->CopyToDevice(init_depth_map.GetPtr(),
@@ -1856,7 +1860,11 @@ void PatchMatchCuda::InitWorkspaceMemory() {
 
   ComputeCudaConfig();
 
-  if (options_.geom_consistency) {
+  if (problem_.initial_normal_map != nullptr) {
+    normal_map_->CopyToDevice(
+        problem_.initial_normal_map->GetPtr(),
+        problem_.initial_normal_map->GetWidth() * sizeof(float));
+  } else if (options_.geom_consistency) {
     const NormalMap& init_normal_map =
         problem_.normal_maps->at(problem_.ref_image_idx);
     normal_map_->CopyToDevice(init_normal_map.GetPtr(),
